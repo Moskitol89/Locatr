@@ -1,5 +1,6 @@
 package com.moskitol.locatr;
 
+import android.location.Location;
 import android.net.Uri;
 import android.util.Log;
 
@@ -93,6 +94,19 @@ public class FlickrFetchr {
         }
 
         return uriBuilder.build().toString();
+    }
+
+    private String buildUrl(Location location) {
+        return ENDPOINT.buildUpon()
+                .appendQueryParameter("method", SEARCH_METHOD)
+                .appendQueryParameter("lat", String.valueOf(location.getLatitude()))
+                .appendQueryParameter("lon", String.valueOf(location.getLongitude()))
+                .build().toString();
+    }
+
+    private List<GalleryItem> searchPhotos(Location location) {
+        String url =buildUrl(location);
+        return downloadGalleryItems(url);
     }
 
     private void parseItems(List<GalleryItem> items, JSONObject jsonBody)

@@ -104,7 +104,7 @@ public class FlickrFetchr {
                 .build().toString();
     }
 
-    private List<GalleryItem> searchPhotos(Location location) {
+    public List<GalleryItem> searchPhotos(Location location) {
         String url =buildUrl(location);
         return downloadGalleryItems(url);
     }

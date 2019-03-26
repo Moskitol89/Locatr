@@ -1,15 +1,14 @@
 package com.moskitol.locatr;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -29,14 +28,14 @@ import com.google.android.gms.location.LocationServices;
 import java.io.IOException;
 import java.util.List;
 
+
 public class LocatrFragment extends Fragment {
     private static final String TAG = "LocatrFragment";
-    private static final String[] LOCATION_PERMISSIONS = new String[] {
+    private static final String[] LOCATION_PERMISSIONS = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_COARSE_LOCATION,
     };
     private static final int REQUEST_LOCATION_PERMISSIONS = 0;
-
 
     private ImageView mImageView;
     private GoogleApiClient mClient;
@@ -50,8 +49,7 @@ public class LocatrFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
-        mClient = new GoogleApiClient.Builder(getActivity())
-                .addApi(LocationServices.API)
+        mClient = new GoogleApiClient.Builder(getActivity()).addApi(LocationServices.API)
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                     @Override
                     public void onConnected(@Nullable Bundle bundle) {
@@ -64,16 +62,30 @@ public class LocatrFragment extends Fragment {
                     }
                 })
                 .build();
-
     }
 
-    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_locatr, container, false);
 
-        mImageView = v.findViewById(R.id.image);
+        mImageView = (ImageView) v.findViewById(R.id.image);
         return v;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        getActivity().invalidateOptionsMenu();
+        mClient.connect();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        mClient.disconnect();
     }
 
     @Override
@@ -92,7 +104,8 @@ public class LocatrFragment extends Fragment {
                 if (hasLocationPermission()) {
                     findImage();
                 } else {
-                    requestPermissions(LOCATION_PERMISSIONS, REQUEST_LOCATION_PERMISSIONS);
+                    requestPermissions(LOCATION_PERMISSIONS,
+                            REQUEST_LOCATION_PERMISSIONS);
                 }
                 return true;
             default:
@@ -101,22 +114,8 @@ public class LocatrFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-
-        getActivity().invalidateOptionsMenu();;
-        mClient.connect();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-
-        mClient.disconnect();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
         switch (requestCode) {
             case REQUEST_LOCATION_PERMISSIONS:
                 if (hasLocationPermission()) {
@@ -127,55 +126,63 @@ public class LocatrFragment extends Fragment {
         }
     }
 
-    @SuppressLint("MissingPermission")
     private void findImage() {
         LocationRequest request = LocationRequest.create();
         request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         request.setNumUpdates(1);
         request.setInterval(0);
+        if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         LocationServices.FusedLocationApi
                 .requestLocationUpdates(mClient, request, new LocationListener() {
                     @Override
                     public void onLocationChanged(Location location) {
-                        Log.i(TAG,"Got a fix: " + location);
+                        Log.i(TAG, "Got a fix: " + location);
+                        new SearchTask().execute(location);
                     }
                 });
     }
 
-    private boolean hasLocationPermission(){
+    private boolean hasLocationPermission() {
         int result = ContextCompat
                 .checkSelfPermission(getActivity(), LOCATION_PERMISSIONS[0]);
         return result == PackageManager.PERMISSION_GRANTED;
     }
 
-    private class SearchTask extends AsyncTask<Location, Void, Void> {
+    private class SearchTask extends AsyncTask<Location,Void,Void> {
         private GalleryItem mGalleryItem;
         private Bitmap mBitmap;
 
         @Override
-        protected Void doInBackground(Location... locations) {
+        protected Void doInBackground(Location... params) {
             FlickrFetchr fetchr = new FlickrFetchr();
-            List<GalleryItem> items = fetchr.searchPhotos(locations[0]);
+            List<GalleryItem> items = fetchr.searchPhotos(params[0]);
 
-            if(items.size() == 0) {
+            if (items.size() == 0) {
                 return null;
             }
+
             mGalleryItem = items.get(0);
 
             try {
                 byte[] bytes = fetchr.getUrlBytes(mGalleryItem.getUrl());
                 mBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            }catch (IOException ioe) {
-                Log.i(TAG, "Unable to download bitmap", ioe);
+            } catch (IOException ioe) {
+                Log.i(TAG, "Unable to decode bitmap", ioe);
             }
-
-
-
             return null;
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
+        protected void onPostExecute(Void result) {
             mImageView.setImageBitmap(mBitmap);
         }
     }

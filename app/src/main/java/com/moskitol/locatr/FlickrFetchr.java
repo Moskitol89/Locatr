@@ -18,8 +18,7 @@ import java.util.List;
 
 public class FlickrFetchr {
     private static final String TAG = "FlickrFetchr";
-
-    private static final String API_KEY = "REPLACE_ME_WITH_A_REAL_KEY";
+    private static final String API_KEY = "c95a12c0e5a9f4fc188f33bc2f572574";
     private static final String FETCH_RECENTS_METHOD = "flickr.photos.getRecent";
     private static final String SEARCH_METHOD = "flickr.photos.search";
     private static final Uri ENDPOINT = Uri
@@ -68,6 +67,11 @@ public class FlickrFetchr {
         return downloadGalleryItems(url);
     }
 
+    public List<GalleryItem> searchPhotos(Location location) {
+        String url = buildUrl(location);
+        return downloadGalleryItems(url);
+    }
+
     private List<GalleryItem> downloadGalleryItems(String url) {
         List<GalleryItem> items = new ArrayList<>();
 
@@ -99,14 +103,9 @@ public class FlickrFetchr {
     private String buildUrl(Location location) {
         return ENDPOINT.buildUpon()
                 .appendQueryParameter("method", SEARCH_METHOD)
-                .appendQueryParameter("lat", String.valueOf(location.getLatitude()))
-                .appendQueryParameter("lon", String.valueOf(location.getLongitude()))
+                .appendQueryParameter("lat", "" + location.getLatitude())
+                .appendQueryParameter("lon", "" + location.getLongitude())
                 .build().toString();
-    }
-
-    public List<GalleryItem> searchPhotos(Location location) {
-        String url =buildUrl(location);
-        return downloadGalleryItems(url);
     }
 
     private void parseItems(List<GalleryItem> items, JSONObject jsonBody)
@@ -127,6 +126,7 @@ public class FlickrFetchr {
             }
 
             item.setUrl(photoJsonObject.getString("url_s"));
+            item.setOwner(photoJsonObject.getString("owner"));
             items.add(item);
         }
     }

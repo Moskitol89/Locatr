@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -31,11 +32,11 @@ import java.util.List;
 
 public class LocatrFragment extends Fragment {
     private static final String TAG = "LocatrFragment";
-    private static final String[] LOCATION_PERMISSIONS = new String[]{
+    public static final String[] LOCATION_PERMISSIONS = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
     };
-    private static final int REQUEST_LOCATION_PERMISSIONS = 0;
+    public static final int REQUEST_LOCATION_PERMISSIONS = 0;
 
     private ImageView mImageView;
     private GoogleApiClient mClient;
@@ -103,15 +104,20 @@ public class LocatrFragment extends Fragment {
             case R.id.action_locate:
                 if (hasLocationPermission()) {
                     findImage();
+                } else if (shouldShowRequestPermissionRationale(LOCATION_PERMISSIONS[0])) {
+                    FragmentManager manager = getFragmentManager();
+                    DialogPermissionFragment dialog = new DialogPermissionFragment();
+                    dialog.show(manager, "Dialog");
                 } else {
                     requestPermissions(LOCATION_PERMISSIONS,
-                            REQUEST_LOCATION_PERMISSIONS);
-                }
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+                    REQUEST_LOCATION_PERMISSIONS);
+
         }
+        return true;
+        default:
+        return super.onOptionsItemSelected(item);
     }
+}
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -157,33 +163,33 @@ public class LocatrFragment extends Fragment {
         return result == PackageManager.PERMISSION_GRANTED;
     }
 
-    private class SearchTask extends AsyncTask<Location,Void,Void> {
-        private GalleryItem mGalleryItem;
-        private Bitmap mBitmap;
+private class SearchTask extends AsyncTask<Location, Void, Void> {
+    private GalleryItem mGalleryItem;
+    private Bitmap mBitmap;
 
-        @Override
-        protected Void doInBackground(Location... params) {
-            FlickrFetchr fetchr = new FlickrFetchr();
-            List<GalleryItem> items = fetchr.searchPhotos(params[0]);
+    @Override
+    protected Void doInBackground(Location... params) {
+        FlickrFetchr fetchr = new FlickrFetchr();
+        List<GalleryItem> items = fetchr.searchPhotos(params[0]);
 
-            if (items.size() == 0) {
-                return null;
-            }
-
-            mGalleryItem = items.get(0);
-
-            try {
-                byte[] bytes = fetchr.getUrlBytes(mGalleryItem.getUrl());
-                mBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            } catch (IOException ioe) {
-                Log.i(TAG, "Unable to decode bitmap", ioe);
-            }
+        if (items.size() == 0) {
             return null;
         }
 
-        @Override
-        protected void onPostExecute(Void result) {
-            mImageView.setImageBitmap(mBitmap);
+        mGalleryItem = items.get(0);
+
+        try {
+            byte[] bytes = fetchr.getUrlBytes(mGalleryItem.getUrl());
+            mBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        } catch (IOException ioe) {
+            Log.i(TAG, "Unable to decode bitmap", ioe);
         }
+        return null;
     }
+
+    @Override
+    protected void onPostExecute(Void result) {
+        mImageView.setImageBitmap(mBitmap);
+    }
+}
 }

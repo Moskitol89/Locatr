@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Locatr</string>
     <string name="search">Find an image near you</string>
+    <string name="dialog_title">Locatr использует позиционные данные для поиска близлежащих изображений на Flickr</string>
 </resources>
